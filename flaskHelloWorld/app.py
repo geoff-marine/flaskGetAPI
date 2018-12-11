@@ -1,5 +1,6 @@
 from flask import Flask
 from flask import jsonify
+from flask import request
 import pyodbc
 
 # Create an instance of the Flask class that is the WSGI application.
@@ -17,17 +18,34 @@ database = 'GI_VS_SC_Test'
 cnxn = pyodbc.connect('DRIVER={SQL Server};SERVER='+server+';DATABASE='+database+';Trusted_Connection=yes')
 cursor = cnxn.cursor()
 
-# add getFOO to url or else error returned
+# add getFOO to url to get all
+# add getFOO?id=<id> to get one foo
 
 @app.route('/getFOO')
+
 def getFOO():
-    cursor.execute("SELECT * FROM FOO;") 
-    results = cursor.fetchall()
-    data= []
-    for row in results:
-        data.append([x for x in row])
-    return jsonify(data)
-                
+    if 'id' in request.args:
+        id = request.args['id']
+        cursor.execute("SELECT * FROM FOO WHERE fooKey =" + id)
+        columns = [column[0] for column in cursor.description]
+        results = []
+        for row in cursor.fetchall():
+            results.append(dict(zip(columns, row)))
+        return jsonify(results)
+    else:
+        cursor.execute("SELECT * FROM FOO;") 
+        columns = [column[0] for column in cursor.description]
+        results = []
+        for row in cursor.fetchall():
+            results.append(dict(zip(columns, row)))
+        return jsonify(results)
+
+
+
+@app.route('/test/<name>')
+def nameTest(name):
+    return 'name %s' % name
+
 if __name__ == '__main__':
     # Run the app server on localhost:4449
     app.run('localhost', 4449)
